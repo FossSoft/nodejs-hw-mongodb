@@ -1,29 +1,28 @@
 {
   "name": "nodejs-hw-mongodb",
   "version": "1.0.0",
-  "description": "",
   "type": "module",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js"
   },
   "keywords": [],
-  "author": "Anastasiia Semeniuk",
+  "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@eslint/js": "^9.5.0",
-    "eslint": "^9.5.0",
-    "globals": "^15.6.0",
-    "nodemon": "^3.1.4",
-    "pino-pretty": "^11.2.1"
-  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "eslint": "^9.3.0",
     "express": "^4.19.2",
     "http-errors": "^2.0.0",
-    "mongoose": "^8.4.4",
+    "joi": "^17.13.1",
+    "mongoose": "^8.4.1",
+    "nodemon": "^3.1.2",
     "pino-http": "^10.1.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^11.1.0"
   }
 }

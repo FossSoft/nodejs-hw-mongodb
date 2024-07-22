@@ -1,37 +1,44 @@
-import express from "express";
-import pino from "pino-http";
-import cors from "cors";
-import env from "./utils/env.js"
-import contactsRouter from './routers/contacts.js'
-import { errorHandler } from "./middlewares/errorHandler.js";
-import { notFoundHandler } from "./middlewares/notFoundHandler.js";
-const PORT = env("PORT", "3000");
+import express from 'express';
+import pino from 'pino-http';
+import env from './utils/env.js';
+import cors from 'cors';
 
+import ContactsRouter from './routers/contacts.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import { notFoundHandler } from './middlewares/notFoundHandler.js';
+
+const PORT = Number(env('PORT', 3000));
 const setupServer = () => {
-    const app = express();
-    const logger = pino({
-        transport: {
-            target: "pino-pretty"
-        }
-    });
+  const app = express();
 
-    app.use(logger);
-    app.use(cors());// дозволяє обмінюватися інформацією між веб-ресурсами з різних доменів.
-    app.use(express.json());
-    
-app.get("/", (req, res) => {
-    res.json({
-        status: 200,
-        message: 'Hello world!'
-    });
-});
+  app.use(express.json());
+  app.use(cors());
 
-    app.use(contactsRouter);
-    
-    app.use('*', notFoundHandler);
+  app.use(
+    pino({
+      transport: {
+        target: 'pino-pretty',
+      },
+    }),
+  );
 
-    app.use(errorHandler);
+  app.use(
+    pino({
+      transport: {
+        target: 'pino-pretty',
+      },
+    }),
+  );
 
-    app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+  app.use(ContactsRouter);
+
+  app.get('*', notFoundHandler);
+
+  app.use(errorHandler);
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on ${PORT}`);
+  });
 };
+
 export default setupServer;

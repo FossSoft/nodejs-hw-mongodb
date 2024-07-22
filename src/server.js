@@ -1,14 +1,14 @@
 import express from 'express';
 import pino from 'pino-http';
-import env from './utils/env.js';
 import cors from 'cors';
-
-import ContactsRouter from './routers/contacts.js';
+import { env } from './utils/env.js';
+import contactsRouter from './routers/contacts.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
 
-const PORT = Number(env('PORT', 3000));
-const setupServer = () => {
+const PORT = Number(env('PORT', '3000'));
+
+export const startServer = () => {
   const app = express();
 
   app.use(express.json());
@@ -22,23 +22,19 @@ const setupServer = () => {
     }),
   );
 
-  app.use(
-    pino({
-      transport: {
-        target: 'pino-pretty',
-      },
-    }),
-  );
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Hello World!',
+    });
+  });
 
-  app.use(ContactsRouter);
+  app.use(contactsRouter);
 
-  app.get('*', notFoundHandler);
+  app.use('*', notFoundHandler);
 
   app.use(errorHandler);
 
   app.listen(PORT, () => {
-    console.log(`Server is running on ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
   });
 };
-
-export default setupServer;

@@ -1,76 +1,56 @@
-import createHttpError from 'http-errors';
-import { ContactsCollection } from '../db/models/contact.js';
-import mongoose from 'mongoose';
-import { calculatePaginationData } from '../utils/calculatePaginationData.js';
-import { SORT_ORDER } from '../constants/index.js';
+import Contact from "../db/models/Contact.js";
+import calcPaginationData from "../utils/calcPaginationData.js";
+import {contactFieldList} from '../constants/contacts-constants.js';
+import { sortOrderList } from '../constants/index.js';
 
-export const getAllContacts = async ({
-  page = 1,
-  perPage = 10,
-  sortBy = '_id',
-  sortOrder = SORT_ORDER.ASC,
-  userId,
-}) => {
-  const limit = perPage;
-  const skip = (page - 1) * perPage;
+export const getAllContacts = async ({ filter, page, perPage, sortBy = contactFieldList[0], sortOrder = sortOrderList[0] }) => {
+    const skip = (page - 1) * perPage;
+    const databaseQuery = Contact.find();
+    if (filter.userId) {
+        databaseQuery.where('userId').equals(filter.userId);
+    }
+    if (filter.contactType) {
+        databaseQuery.where('contactType').equals(filter.contactType)
+    }
+    if (filter.isFavourite) {
+        databaseQuery.where('isFavourite').equals(filter.isFavourite)
+    }
+    // const items = await databaseQuery.skip(skip).limit(perPage).sort({ [sortBy]: sortOrder }).exec();
+    // const totalItems = await Contact.find().merge(databaseQuery).countDocuments();
 
-  const studentsQuery = ContactsCollection.find({ userId });
-  const studentsCount = await ContactsCollection.find({ userId })
-    .merge(studentsQuery)
-    .countDocuments();
-  const contacts = await ContactsCollection.find({ userId })
-    .skip(skip)
-    .limit(limit)
-    .sort({ [sortBy]: sortOrder })
-    .exec();
-  const paginationData = calculatePaginationData(studentsCount, perPage, page);
-  return {
-    contacts,
-    ...paginationData,
-  };
+    const [totalItems, items] = await Promise.all([
+        Contact.find().merge(databaseQuery).countDocuments(), databaseQuery.skip(skip).limit(perPage).sort({ [sortBy]: sortOrder }).exec(),
+    ]);
+    const { totalPages, hasNextPage, hasPreviousPage } = calcPaginationData({ total: totalItems, page, perPage });
+   
+    return {
+        items,
+        page,
+        perPage,
+        totalItems,
+        totalPages,
+        hasPreviousPage,
+        hasNextPage
+    }
 };
 
-export const getContactById = async (contactId, userId) => {
-  const contact = await ContactsCollection.findOne({ _id: contactId, userId });
-  return contact;
+export const getContactById = filter => Contact.findOne(filter);
+
+export const addContact = contactId => Contact.create(contactId);
+
+export const patchContact = async (contactId, payload, options = {}) => {
+    const rawResult = await Contact.findOneAndUpdate({ _id: contactId,  userId: userId }, payload, {
+        includeResultMetadata: true,
+        ...options,
+    });
+    if (!rawResult || !rawResult.value) return null;
+    return {
+        contact: rawResult.value,
+        isNew: Boolean(rawResult?.lastErrorObject?.upserted)
+    };
 };
 
-export const createContact = async (payload) => {
-  const contact = await ContactsCollection.create(payload);
-  return contact;
-};
-
-export const updateContact = async (contactId, payload, options = {}) => {
-  if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    createHttpError(400, 'Contact not found');
-    return;
-  }
-  const rawResult = await ContactsCollection.findOneAndUpdate(
-    { _id: contactId, userId: payload.userId },
-    payload,
-    {
-      new: true,
-      includeResultMetadata: true,
-      ...options,
-    },
-  );
-
-  if (!rawResult || !rawResult.value) return null;
-
-  return {
-    contact: rawResult.value,
-    isNew: Boolean(rawResult?.lastErrorObject?.upserted),
-  };
-};
-export const deleteContact = async (contactId, userId) => {
-  if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    createHttpError(400, 'Contact not found');
-    return;
-  }
-  const contact = await ContactsCollection.findOneAndDelete({
-    _id: contactId,
-    userId,
-  });
-
-  return contact;
+export const deleteContact = async (contactId) => {
+    const contact = await Contact.findOneAndDelete({ _id: contactId,  userId: userId });
+    return contact;
 };

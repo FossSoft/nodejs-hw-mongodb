@@ -1,38 +1,24 @@
 import { Router } from 'express';
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
-import {
-  getContactByIdController,
-  getContactsController,
-  createContactController,
-  patchContactController,
-  deleteContactController,
-} from '../controllers/contacts.js';
-import { validateBody } from '../middlewares/validateBody.js';
-import {
-  createContactSchema,
-  isValidId,
-  updateContactSchema,
-} from '../validation/contacts.js';
-import { authenticate } from '../middlewares/authenticate.js';
-const router = Router();
+import { addContactController, deleteContactController, getContactByIdConntroller, getContactsController, patchContactController } from '../controllers/contacts.js';
+import isValidId from '../middlewares/isValidId.js';
+import validateBody from '../utils/validateBoody.js';
+import { createContactsSchema, updateContactsSchema } from '../validation/contacts.js';
+import authenticate from '../middlewares/authenticate.js';
 
-router.use(authenticate);
-router.get('/', ctrlWrapper(getContactsController));
+const contactsRouter = Router();
 
-router.get('/:contactId', ctrlWrapper(getContactByIdController));
+contactsRouter.use(authenticate);
 
-router.post(
-  '/',
-  validateBody(createContactSchema),
-  ctrlWrapper(createContactController),
-);
+contactsRouter.get('/contacts', ctrlWrapper(getContactsController));
 
-router.patch(
-  '/:contactId',
-  validateBody(updateContactSchema),
-  ctrlWrapper(patchContactController),
-);
+contactsRouter.get('/contacts/:contactId', isValidId, ctrlWrapper(getContactByIdConntroller));
 
-router.delete('/:contactId', ctrlWrapper(deleteContactController));
+contactsRouter.post('/contacts', validateBody(createContactsSchema), ctrlWrapper(addContactController));
 
-export default router;
+contactsRouter.patch('/contacts/:contactId', isValidId,
+validateBody(updateContactsSchema), ctrlWrapper(patchContactController));
+
+contactsRouter.delete('/contacts/:contactId', isValidId, ctrlWrapper(deleteContactController));
+
+export default contactsRouter; 

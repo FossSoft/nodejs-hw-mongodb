@@ -1,35 +1,31 @@
-import { Schema, model } from "mongoose";
-import { mongooseSaveError, setUpdateSettings } from "./hooks.js";
-import { emailRegexp } from "../../constants/users-constants.js";
+import { Schema, model } from 'mongoose';
 
-const userShema = new Schema({
+const usersSchema = new Schema(
+  {
     name: {
-        type: String,
-        require: true
+      type: String,
+      required: true,
     },
     email: {
-        type: String,
-        match: emailRegexp,
-        unique: true,
-        require: true
+      type: String,
+      required: true,
+      unique: true,
     },
     password: {
-        type: String,
-        require: true
-    }
-
-}, {
+      type: String,
+      required: true,
+    },
+  },
+  {
     timestamps: true,
-    versionKey: false
-});
+    versionKey: false,
+  },
+);
 
-userShema.post("save", mongooseSaveError);
+usersSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
-userShema.pre("findOneAndUpdate", setUpdateSettings);
-
-userShema.post("findOneAndUpdate", mongooseSaveError);
-
-
-const User = model("user", userShema);
-
-export default User;
+export const UserCollection = model('users', usersSchema);

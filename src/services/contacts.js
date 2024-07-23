@@ -1,56 +1,63 @@
-import Contact from "../db/models/Contact.js";
-import calcPaginationData from "../utils/calcPaginationData.js";
-import {contactFieldList} from '../constants/contacts-constants.js';
-import { sortOrderList } from '../constants/index.js';
+import { SORT_ORDER } from '../constants/index.js';
+import { ContactsCollection } from '../db/models/contacts.js';
+import { calculatePaginationData } from '../utils/calculatePaginationData.js';
 
-export const getAllContacts = async ({ filter, page, perPage, sortBy = contactFieldList[0], sortOrder = sortOrderList[0] }) => {
-    const skip = (page - 1) * perPage;
-    const databaseQuery = Contact.find();
-    if (filter.userId) {
-        databaseQuery.where('userId').equals(filter.userId);
-    }
-    if (filter.contactType) {
-        databaseQuery.where('contactType').equals(filter.contactType)
-    }
-    if (filter.isFavourite) {
-        databaseQuery.where('isFavourite').equals(filter.isFavourite)
-    }
-    // const items = await databaseQuery.skip(skip).limit(perPage).sort({ [sortBy]: sortOrder }).exec();
-    // const totalItems = await Contact.find().merge(databaseQuery).countDocuments();
+export const getAllContacts = async ({page = 1, perPage = 10, sortOrder = SORT_ORDER.ASC, sortBy = '_id', filter = {}}) => {
+  const limit = perPage;
+  const skip = (page - 1) * perPage;
 
-    const [totalItems, items] = await Promise.all([
-        Contact.find().merge(databaseQuery).countDocuments(), databaseQuery.skip(skip).limit(perPage).sort({ [sortBy]: sortOrder }).exec(),
-    ]);
-    const { totalPages, hasNextPage, hasPreviousPage } = calcPaginationData({ total: totalItems, page, perPage });
-   
-    return {
-        items,
-        page,
-        perPage,
-        totalItems,
-        totalPages,
-        hasPreviousPage,
-        hasNextPage
-    }
+  const contactsQuery = ContactsCollection.find({ userId: filter.userId }); // Використовуємо фільтр з userId
+
+  if (filter.type) {
+    contactsQuery.where('contactType').equals(filter.type);
+  }
+  if (filter.isFavourite !== undefined) {
+    contactsQuery.where('isFavourite').equals(filter.isFavourite);
+  }
+
+  const contactsCount = await ContactsCollection.find(filter).merge(contactsQuery).countDocuments();
+  const contacts = await contactsQuery.skip(skip).limit(limit).sort({[sortBy]: sortOrder}).exec();
+  const paginationData = calculatePaginationData(contactsCount, perPage, page);
+
+  return {
+    data: contacts,
+    ...paginationData,
+  };
 };
 
-export const getContactById = filter => Contact.findOne(filter);
-
-export const addContact = contactId => Contact.create(contactId);
-
-export const patchContact = async (contactId, payload, options = {}) => {
-    const rawResult = await Contact.findOneAndUpdate({ _id: contactId,  userId: userId }, payload, {
-        includeResultMetadata: true,
-        ...options,
-    });
-    if (!rawResult || !rawResult.value) return null;
-    return {
-        contact: rawResult.value,
-        isNew: Boolean(rawResult?.lastErrorObject?.upserted)
-    };
+export const getContactById = async (contactId, userId) => {
+  const contact = await ContactsCollection.findOne({ _id: contactId, userId });
+  return contact;
 };
 
-export const deleteContact = async (contactId) => {
-    const contact = await Contact.findOneAndDelete({ _id: contactId,  userId: userId });
-    return contact;
+export const createContact = async (payload) => {
+  const contact = await ContactsCollection.create(payload);
+  return contact;
+};
+
+export const deleteContact = async (contactId, userId) => {
+  const contact = await ContactsCollection.findOneAndDelete({
+    _id: contactId,
+    userId,
+  });
+  return contact;
+};
+
+export const updateContact = async (contactId, payload, options = {}) => {
+  const rawResult = await ContactsCollection.findOneAndUpdate(
+    { _id: contactId, userId: payload.userId },
+    payload,
+    {
+      new: true,
+      includeResultMetadata: true,
+      ...options,
+    },
+  );
+
+  if (!rawResult || !rawResult.value) return null;
+
+  return {
+    contact: rawResult.value,
+    isNew: Boolean(rawResult?.lastErrorObject?.upserted),
+  };
 };

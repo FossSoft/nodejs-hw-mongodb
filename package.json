@@ -5,8 +5,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build-docs",
+    "build-docs": "redocly bundle --ext json -o docs/swagger.json",
+    "preview-docs": "redocly preview-docs",
     "dev": "nodemon src/index.js"
   },
   "keywords": [],
@@ -27,9 +30,11 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.14",
     "nodemon": "^3.1.2",
-    "pino-http": "^10.1.0"
+    "pino-http": "^10.1.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@redocly/cli": "^1.18.0",
     "@types/express": "^4.17.21",
     "pino-pretty": "^11.1.0"
   }

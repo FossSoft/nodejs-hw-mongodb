@@ -1,29 +1,31 @@
+#/swagger/paths/contacts/get.yaml
+
 tags:
   - Contacts
 summary: Get list of contacts
 operationId: getContacts
-description: Get list of users with this endpoint
+description: 'Get list of contacts for the authenticated user'
 security:
   - bearerAuth: []
 parameters:
-  - name: page
-    in: query
+  - in: query
+    name: page
     schema:
       type: integer
-      example: 1
-  - name: perPage
-    in: query
+    example: 1
+  - in: query
+    name: perPage
     schema:
       type: integer
       example: 10
-  - name: sortBy
-    in: query
+  - in: query
+    name: sortBy
     schema:
       type: string
       example: 'name'
     description: "All contact's fields can be mentioned. Default value - _id"
-  - name: sortOrder
-    in: query
+  - in: query
+    name: sortOrder
     schema:
       type: string
       enum: ['asc', 'desc']
@@ -60,24 +62,24 @@ responses:
                 data:
                   type: array
                   items:
-                    $ref: ../../components/schemes/contact.yaml
+                    $ref: '../../components/schemas/contact.yaml'
                 page:
                   type: number
-                  example: 2
+                  example: 1
                 perPage:
                   type: number
-                  example: 4
+                  example: 10
                 totalItems:
                   type: number
-                  example: 4
+                  example: 50
                 totalPages:
                   type: number
-                  example: 4
+                  example: 5
                 hasNextPage:
                   type: boolean
-                  example: false
+                  example: true
                 hasPreviousPage:
                   type: boolean
-                  example: true
+                  example: false
   '401':
-    $ref: ../../components/responses/401.yaml
+    $ref: '../../components/responses/401.yaml'

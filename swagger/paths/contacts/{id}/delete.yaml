@@ -1,24 +1,33 @@
 tags:
   - Contacts
-summary: Patch contact by id
+summary: Delete a contact
 operationId: deleteContact
-description: 'Delete contact by id'
+description: Delete an existing contact with the given ID.
 security:
   - bearerAuth: []
 parameters:
-  - name: id
-    in: path
+  - in: path
+    name: contactId
     required: true
     schema:
       type: string
-      example: 65ca67e7ae7f10c88b598384
-    description: ID of the contact
+    description: ID of the contact to be deleted.
 responses:
   '200':
-    description: 'Delete contact by id'
+    description: Successfully deleted the contact!
     content:
       application/json:
         schema:
           type: object
+          required:
+            - status
+            - message
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: Successfully deleted the contact!
   '401':
-    $ref: ../../../components/responses/401.yaml
+    $ref: ..\..\..\components\responses\401.yaml

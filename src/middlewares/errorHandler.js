@@ -1,11 +1,12 @@
-import { HttpError } from "http-errors";
+import { HttpError } from 'http-errors';
 
 export const errorHandler = (err, req, res, next) => {
+  console.log(err);
   if (err instanceof HttpError) {
     res.status(err.status).json({
       status: err.status,
-      message: err.message,
-      data: null,
+      message: err.name,
+      data: err.data,
     });
     return;
   }

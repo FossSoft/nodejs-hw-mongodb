@@ -1,6 +1,8 @@
 import { Schema, model } from 'mongoose';
+import { emailPattern } from '../../constants/user-constants.js';
+import { mongooseSaveError, setUpdateSettings } from './hooks.js';
 
-const usersSchema = new Schema(
+const userSchema = new Schema(
   {
     name: {
       type: String,
@@ -8,6 +10,7 @@ const usersSchema = new Schema(
     },
     email: {
       type: String,
+      pattern: emailPattern,
       required: true,
       unique: true,
     },
@@ -22,10 +25,13 @@ const usersSchema = new Schema(
   },
 );
 
-usersSchema.methods.toJSON = function () {
+userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   return obj;
 };
 
-export const UserCollection = model('users', usersSchema);
+userSchema.pre('findOneAndUpdate', setUpdateSettings);
+userSchema.post('save', mongooseSaveError);
+
+export const UserCollection = model('User', userSchema);

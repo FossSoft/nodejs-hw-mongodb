@@ -2,15 +2,15 @@ import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
 import { env } from './utils/env.js';
-import router from './routers/index.js';
+
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
+import router from './routers/index.js';
 import cookieParser from 'cookie-parser';
-import { UPLOAD_DIR } from './constants/index.js';
 
-const PORT = Number(env('PORT', '3000'));
+const PORT = Number(env('PORT', 3000));
 
-export const startServer = () => {
+export const setupServer = () => {
   const app = express();
 
   app.use(express.json());
@@ -24,17 +24,10 @@ export const startServer = () => {
       },
     }),
   );
-
   app.get('/', (req, res) => {
-    res.json({
-      message: 'Hello World!',
-    });
+    res.send('Welcome to the homepage');
   });
-
-
   app.use(router);
-
-  app.use('/uploads', express.static(UPLOAD_DIR));
 
   app.use('*', notFoundHandler);
 

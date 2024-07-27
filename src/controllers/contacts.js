@@ -1,147 +1,141 @@
-import { getAllContacts, getContactById, createContact, deleteContact, updateContact } from '../services/contacts.js';
 import createHttpError from 'http-errors';
+import {
+  createContact,
+  deleteContact,
+  getAllContacts,
+  getContactById,
+  updateContact,
+} from '../services/contacts.js';
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
-import { parseFilterParams } from '../utils/parseFilterParams.js';
+import { parseContactFilterParams } from '../utils/parseContactFilterParams.js';
+import { saveFileToUploadDir } from '../utils/saveFileToUploadDir.js';
+import { env } from '../utils/env.js';
 import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
 
+export const getContactsController = async (req, res) => {
+  const { page, perPage } = parsePaginationParams(req.query);
 
+  const { sortBy, sortOrder } = parseSortParams(req.query);
 
-//з userId, який додається до req.user мідлварою authenticate
+  const filter = parseContactFilterParams(req.query, req.user._id);
 
-// Контролер для отримання всіх контактів
-export const getContactsController = async (req, res, next) => {
-  try {
-    const { page, perPage } = parsePaginationParams(req.query);
-    const { sortBy, sortOrder } = parseSortParams(req.query);
-    const filter = parseFilterParams(req.query);
-    const userId = req.user._id; // Використовуємо userId з мідлвари
+  filter.userId = req.user._id;
 
-    const contacts = await getAllContacts({
-      userId,
-      page,
-      perPage,
-      sortBy,
-      sortOrder,
-      filter,
-    });
+  const contacts = await getAllContacts({
+    page,
+    perPage,
+    sortBy,
+    sortOrder,
+    filter,
+  });
 
-    res.json({
-      status: 200,
-      message: 'Contacts found successfully!',
-      data: contacts,
-    });
-  } catch (err) {
-    next(err);
-  }
+  res.status(200).json({
+    status: 200,
+    message: 'Successfully found contacts!',
+    data: contacts,
+  });
 };
 
-// Контролер для отримання контакту за ID
 export const getContactByIdController = async (req, res, next) => {
-  try {
-    const { contactId } = req.params;
-    const userId = req.user._id; // Використовуємо userId з мідлвари
+  const { contactId } = req.params;
+  const contact = await getContactById(contactId, req.user._id);
 
-    const contact = await getContactById({ contactId, userId });
-
-    if (!contact) {
-      next(createHttpError(404, 'Contact not found'));
-      return;
-    }
-
-    res.json({
-      status: 200,
-      message: `Contact successfully found id ${contactId}!`,
-      data: contact,
-    });
-  } catch (err) {
-    next(err);
+  if (!contact) {
+    next(createHttpError(404, 'Contact not found'));
+    return;
   }
+
+  res.status(200).json({
+    status: 200,
+    message: `Successfully found contact with id ${contactId}!`,
+    data: contact,
+  });
 };
 
-// Контролер для створення нового контакту
-export const createContactController = async (req, res, next) => {
-  try {
-    const { name, phoneNumber  } = req.body;
+export const createContactController = async (req, res) => {
+  const payload = {
+    ...req.body,
+    userId: req.user._id,
+  };
 
+  const student = await createContact(payload);
 
-    if (!name || !phoneNumber) {
-      next(createHttpError(400, 'Name and phone number are required'));
-      return;
-    }
-
-    const userId = req.user._id; // Використовуємо userId з мідлвари
-
-    const photo = req.file;
-
-    let photoUrl;
-    if (photo) {
-      photoUrl = await saveFileToCloudinary(photo);
-    }
-
-
-    const newContact = await createContact({ userId,  ...req.body, photo: photoUrl   });
-
-    // const newContact = await createContact({ ...req.body, userId });
-
-
-    res.status(201).json({
-      status: 201,
-      message: 'Contact successfully created!',
-      data: newContact,
-    });
-  } catch (err) {
-    next(err);
-  }
+  res.status(201).json({
+    status: 201,
+    message: `Successfully created a contact!`,
+    data: student,
+  });
 };
 
-// Контролер для видалення контакту
 export const deleteContactController = async (req, res, next) => {
-  try {
-    const { contactId } = req.params;
-    const userId = req.user._id; // Використовуємо userId з мідлвари
+  const { contactId } = req.params;
 
-    const contact = await deleteContact({ contactId, userId });
+  const contact = await deleteContact(contactId, req.user._id);
 
-    if (!contact) {
-      next(createHttpError(404, 'Contact not found', { message: 'Contact not found' }));
-      return;
-    }
-
-    res.status(204).send();
-  } catch (err) {
-    next(err);
+  if (!contact) {
+    next(createHttpError(404, 'Contact not found'));
+    return;
   }
+
+  res.status(204).send();
 };
 
-// Контролер для оновлення контакту
+export const upsertContactController = async (req, res, next) => {
+  const { contactId } = req.params;
+  const payload = {
+    ...req.body,
+    userId: req.user._id,
+  };
+
+  const result = await updateContact(contactId, payload, {
+    upsert: true,
+  });
+
+  if (!result) {
+    next(createHttpError(404, 'Contact not found'));
+    return;
+  }
+
+  const status = result.isNew ? 201 : 200;
+
+  res.status(status).json({
+    status,
+    message: `Successfully upserted a contact!`,
+    data: result.contact,
+  });
+};
+
 export const patchContactController = async (req, res, next) => {
-  try {
-    const { contactId } = req.params;
-    const userId = req.user._id; // Використовуємо userId з мідлвари
+  const { contactId } = req.params;
+  const photo = req.file;
 
-    const photo = req.file;
+  let photoUrl;
 
-    let photoUrl;
-    if (photo) {
+  if (photo) {
+    if (env('ENABLE_CLOUDINARY') === 'true') {
       photoUrl = await saveFileToCloudinary(photo);
+    } else {
+      photoUrl = await saveFileToUploadDir(photo);
     }
-
-    const result = await updateContact({ contactId, userId, payload: { ...req.body, photo: photoUrl } });
-
-    if (!result) {
-      next(createHttpError(404, 'Contact not found', { message: 'Contact not found' }));
-      return;
-    }
-
-    res.json({
-      status: 200,
-      message: 'Contact successfully updated!!',
-      data: result.contact,
-    });
-  } catch (err) {
-    next(err);
   }
+
+  const payload = {
+    ...req.body,
+    userId: req.user._id,
+    photo: photoUrl,
+  };
+
+  const result = await updateContact(contactId, payload);
+
+  if (!result) {
+    next(createHttpError(404, 'Contact not found'));
+    return;
+  }
+
+  res.json({
+    status: 200,
+    message: `Successfully patched a contact!`,
+    data: result.contact,
+  });
 };
-
-

@@ -1,39 +1,38 @@
-import { KEY_OF_CONTACTS, SORT_ORDER } from '../constants/contact-constants.js';
 import { ContactsCollection } from '../db/models/contact.js';
 import { calculatePaginationData } from '../utils/calculatePaginationData.js';
+import { SORT_ORDER } from '../index.js';
 
 export const getAllContacts = async ({
+  userId,
   page = 1,
   perPage = 10,
-  sortOrder = SORT_ORDER[0],
-  sortBy = KEY_OF_CONTACTS[0],
+  sortOrder = SORT_ORDER.ASC,
+  sortBy = '_id',
   filter = {},
 }) => {
   const limit = perPage;
   const skip = (page - 1) * perPage;
 
-  const contactQuery = ContactsCollection.find();
-  if (filter.userId) {
-    contactQuery.where('userId').equals(filter.userId);
-  }
-
-  if (filter.contactType) {
-    contactQuery.where('contactType').equals(filter.contactType);
+  const contactsQuery = ContactsCollection.find({ userId });
+  if (filter.type) {
+    contactsQuery.where('contactType').equals(filter.type);
   }
 
   if (filter.isFavourite !== undefined) {
-    contactQuery.where('isFavourite').equals(filter.isFavourite);
+    contactsQuery.where('isFavourite').equals(filter.isFavourite);
   }
-  const contactCount = await ContactsCollection.find()
-    .merge(contactQuery)
+
+  const contactsCount = await ContactsCollection.find({ userId })
+    .merge(contactsQuery)
     .countDocuments();
 
-  const contacts = await contactQuery
+  const contacts = await contactsQuery
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortOrder })
     .exec();
-  const paginationData = calculatePaginationData(contactCount, perPage, page);
+
+  const paginationData = calculatePaginationData(contactsCount, perPage, page);
 
   return {
     data: contacts,
@@ -41,9 +40,8 @@ export const getAllContacts = async ({
   };
 };
 
-export const getContactById = async (contactId, user) => {
-  const contact = ContactsCollection.find({ _id: contactId, userId: user });
-
+export const getContactById = async ({ contactId, userId }) => {
+  const contact = await ContactsCollection.findOne({ _id: contactId, userId });
   return contact;
 };
 
@@ -52,9 +50,18 @@ export const createContact = async (payload) => {
   return contact;
 };
 
-export const updateContact = async (contactId, user, payload, options = {}) => {
+export const deleteContact = async ({ contactId, userId }) => {
+  const contact = await ContactsCollection.findOneAndDelete({
+    _id: contactId,
+    userId,
+  });
+
+  return contact;
+};
+
+export const updateContact = async ({ contactId, userId, payload, options = {} }) => {
   const rawResult = await ContactsCollection.findOneAndUpdate(
-    { _id: contactId, userId: user },
+    { _id: contactId, userId },
     payload,
     {
       new: true,
@@ -62,17 +69,15 @@ export const updateContact = async (contactId, user, payload, options = {}) => {
       ...options,
     },
   );
+
   if (!rawResult || !rawResult.value) return null;
+
   return {
-    student: rawResult.value,
+    contact: rawResult.value,
     isNew: Boolean(rawResult?.lastErrorObject?.upserted),
   };
 };
 
-export const deleteContact = async (contactId, user) => {
-  const contact = await ContactsCollection.findOneAndDelete({
-    _id: contactId,
-    userId: user,
-  });
-  return contact;
-};
+
+
+

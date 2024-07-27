@@ -1,21 +1,33 @@
-import { CONTACT_TYPE_LIST } from '../constants/contact-constants.js';
 
-const parseType = (type) => {
-  if (typeof type !== 'string') return;
-  if (CONTACT_TYPE_LIST.includes(type)) return type;
+const parseContactType = (contactType) => {
+  const isString = typeof contactType === 'string';
+  if (!isString) return;
+  const isValidType = (contactType) => ['work', 'home', 'personal'].includes(contactType);
+
+  if (isValidType(contactType)) return contactType;
 };
 
-const parseFavourite = (favourite) => {
-  if (typeof favourite !== 'string') return;
-  if (['false', 'true'].includes(favourite)) return favourite === 'true';
+
+
+ const parseIsFavourite = (isFavourite) => {
+  const isBoolean = isFavourite === 'true' || isFavourite === 'false';
+
+  if (!isBoolean) return;
+
+  return isFavourite === 'true' ? true : false;
 };
 
-export const parseFilterParams = ({ isFavourite, contactType, userId }) => {
-  const parsedIsFavourite = parseFavourite(isFavourite);
-  const parsedContactType = parseType(contactType);
+
+export const parseFilterParams = (query) => {
+  const { contactType, isFavourite } = query;
+
+  const parsedContactType = parseContactType(contactType);
+  const parsedIsFavourite = parseIsFavourite(isFavourite);
+
+
   return {
-    isFavourite: parsedIsFavourite,
     contactType: parsedContactType,
-    userId: userId,
+    isFavourite: parsedIsFavourite,
+
   };
 };

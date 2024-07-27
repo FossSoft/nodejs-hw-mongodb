@@ -1,44 +1,49 @@
-import { Schema, model } from 'mongoose';
-import { mongooseSaveError, setUpdateSettings } from './hooks.js';
+import {model, Schema } from 'mongoose';
 
-const contactSchema = new Schema(
+const contactsSchema = new Schema(
   {
     name: {
       type: String,
       required: true,
     },
-    phoneNumber: {
+
+    phoneNumber:{
       type: String,
       required: true,
     },
+
     email: {
       type: String,
+      required: false,
+
     },
-    isFavourite: {
+     isFavourite: {
       type: Boolean,
       default: false,
     },
+
     contactType: {
       type: String,
-      required: true,
       enum: ['work', 'home', 'personal'],
       default: 'personal',
     },
+
     userId: {
-      type: String,
-      required: true,
+      type: Schema.Types.ObjectId,
+      ref: 'users'
     },
-    photo: {
+     photo: {
       type: String,
+      default: null,
     },
+
+
   },
+
   {
     timestamps: true,
     versionKey: false,
   },
 );
 
-contactSchema.pre('findOneAndUpdate', setUpdateSettings);
-contactSchema.post('save', mongooseSaveError);
-
-export const ContactsCollection = model('Contact', contactSchema);
+export const ContactsCollection = model('contacts', contactsSchema);

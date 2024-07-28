@@ -1,20 +1,21 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import { env } from './utils/env.js';
 import router from './routers/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
+import cookieParser from 'cookie-parser';
 import { UPLOAD_DIR } from './constants/index.js';
 
-export const setupServer = () => {
+const PORT = Number(env('PORT', '3000'));
+
+export const startServer = () => {
   const app = express();
-  // const PORT = 3000(process.env.PORT);
-  const PORT = Number(env('PORT', '3000'));
 
   app.use(express.json());
   app.use(cors());
+  app.use(cookieParser());
 
   app.use(
     pino({
@@ -24,21 +25,16 @@ export const setupServer = () => {
     }),
   );
 
-  app.use((req, res, next) => {
-    console.log(`Time: ${new Date().toLocaleString()}`);
-    next();
-  });
-
-  app.use(cookieParser());
-
   app.get('/', (req, res) => {
     res.json({
-      message: 'Hello world!',
+      message: 'Hello World!',
     });
   });
-  app.use('/uploads', express.static(UPLOAD_DIR));
+
 
   app.use(router);
+
+  app.use('/uploads', express.static(UPLOAD_DIR));
 
   app.use('*', notFoundHandler);
 
